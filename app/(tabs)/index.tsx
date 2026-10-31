@@ -1,31 +1,44 @@
-import { StyleSheet } from 'react-native';
+import React, { useContext, useMemo, useState } from 'react';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, FlatList, ScrollView, useWindowDimensions } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
+import { COLORS } from '@/constants/Colors';
+import * as Clipboard from 'expo-clipboard';
+import { DUMMY_POSTS, Post } from '@/constants/dummyData';
+import { LIGHT_COLORS, ThemeContext } from '../_layout';
+import { translate } from '@/constants/translations';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import EditScreenInfo from '@/components/EditScreenInfo';
-import { Text, View } from '@/components/Themed';
+const CATEGORIES = ['Semua', 'WebSec', 'Forensics', 'Crypto', 'OSINT'];
 
-export default function TabOneScreen() {
-  return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Tab One</Text>
-      <View style={styles.separator} lightColor="#eee" darkColor="rgba(255,255,255,0.1)" />
-      <EditScreenInfo path="app/(tabs)/index.tsx" />
-    </View>
-  );
+export default function HomeScreen() {
+  const [category, setCategory] = useState('Semua');
+  const [search, setSearch] = useState('');
+  const { isDark, language } = useContext(ThemeContext);
+  const insets = useSafeAreaInsets();
+  const colors = isDark ? COLORS : LIGHT_COLORS;
+  const t = (key: string) => translate(language, key);
+  const { width } = useWindowDimensions();
+  const columns = width >= 760 ? 2 : 1;
+  const posts = useMemo(() => DUMMY_POSTS.filter((post) => (category === 'Semua' || post.category === category) && `${post.title} ${post.username} ${post.excerpt}`.toLowerCase().includes(search.toLowerCase())), [category, search]);
+  return <SafeAreaView style={[styles.screen, { backgroundColor: colors.background }]} edges={['top']}>
+    <View style={styles.topbar}><View style={[styles.search, { backgroundColor: colors.surface, borderColor: colors.cardBorder }]}><Ionicons name="search-outline" size={19} color={colors.textMuted} /><TextInput value={search} onChangeText={setSearch} placeholder={t('search')} placeholderTextColor={colors.placeholder} style={[styles.searchInput, { color: colors.textPrimary }]} returnKeyType="search" /><View style={[styles.shortcut, { borderColor: colors.cardBorder }]}><Text style={[styles.shortcutText, { color: colors.textMuted }]}>⌘ K</Text></View></View><TouchableOpacity accessibilityLabel={t('notification')} style={[styles.iconButton, { backgroundColor: colors.surface, borderColor: colors.cardBorder }]} activeOpacity={0.7}><Ionicons name="notifications-outline" size={20} color={colors.textSecondary} /></TouchableOpacity></View>
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categories}>{CATEGORIES.map((item) => <TouchableOpacity key={item} onPress={() => setCategory(item)} activeOpacity={0.75} style={[styles.pill, { backgroundColor: colors.surface, borderColor: colors.cardBorder }, category === item && styles.pillActive]}><Text style={[styles.pillText, { color: colors.textSecondary }, category === item && styles.pillTextActive]}>{item === 'Semua' ? t('all') : item}</Text></TouchableOpacity>)}</ScrollView>
+    <FlatList data={posts} key={columns} numColumns={columns} keyExtractor={(item) => item.id} contentContainerStyle={styles.feed} columnWrapperStyle={columns === 2 ? styles.columns : undefined} showsVerticalScrollIndicator={false} renderItem={({ item }) => <PostCard post={item} wide={columns === 2} />} ListEmptyComponent={<View style={styles.empty}><Ionicons name="file-tray-outline" size={30} color={colors.textMuted} /><Text style={[styles.muted, { color: colors.textMuted }]}>{t('noResults')}</Text></View>} />
+    <TouchableOpacity style={[styles.fab, { bottom: 74 + insets.bottom }]} activeOpacity={0.8} accessibilityLabel={t('createWriteup')}><Ionicons name="add" size={27} color={COLORS.background} /></TouchableOpacity>
+  </SafeAreaView>;
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  separator: {
-    marginVertical: 30,
-    height: 1,
-    width: '80%',
-  },
-});
+function PostCard({ post, wide }: { post: Post; wide: boolean }) {
+  const [upvoted, setUpvoted] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const { isDark, language } = useContext(ThemeContext);
+  const colors = isDark ? COLORS : LIGHT_COLORS;
+  const t = (key: string) => translate(language, key);
+  return <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.cardBorder }, wide && styles.cardWide]}><View style={styles.cardHeader}><View style={styles.userRow}><View style={styles.avatar}><Text style={styles.avatarText}>{post.username.slice(0, 1).toUpperCase()}</Text></View><View style={styles.userInfo}><Text style={[styles.username, { color: colors.textPrimary }]} numberOfLines={1} ellipsizeMode="tail">{post.username}</Text><Text style={[styles.time, { color: colors.textMuted }]}>{post.time}</Text></View></View><View style={[styles.badge, { borderColor: `${post.color}66` }]}><Text style={[styles.badgeText, { color: post.color }]}>{post.category}</Text></View></View>
+    <Text style={[styles.title, { color: colors.textPrimary }]} numberOfLines={2} ellipsizeMode="tail">{post.title}</Text><Text style={[styles.excerpt, { color: colors.textSecondary }]} numberOfLines={2}>{post.excerpt}</Text><View style={styles.terminal}><View style={styles.terminalHead}><View style={styles.termDots}><View style={[styles.termDot, { backgroundColor: '#FF5F57' }]} /><View style={[styles.termDot, { backgroundColor: '#FEBC2E' }]} /><View style={[styles.termDot, { backgroundColor: '#28C840' }]} /></View><Text style={styles.terminalLabel}>terminal</Text><TouchableOpacity style={styles.copy} onPress={async () => { await Clipboard.setStringAsync(post.code); setCopied(true); }} activeOpacity={0.7}><Ionicons name={copied ? "checkmark" : "copy-outline"} size={15} color={copied ? COLORS.emerald : colors.textSecondary} /><Text style={[styles.copyText, { color: colors.textSecondary }]}>{copied ? t('codeCopied') : t('copyCode')}</Text></TouchableOpacity></View><View style={styles.codeRow}><Text style={styles.lineNumbers}>1{'\n'}2{'\n'}3{'\n'}4</Text><Text style={styles.code} numberOfLines={4} ellipsizeMode="tail">{post.code}</Text></View></View>
+    <View style={styles.actions}><TouchableOpacity onPress={() => setUpvoted(!upvoted)} style={styles.action} activeOpacity={0.7}><Ionicons name={upvoted ? 'arrow-up-circle' : 'arrow-up-circle-outline'} size={19} color={upvoted ? COLORS.cyan : colors.textMuted} /><Text style={[styles.actionText, { color: colors.textMuted }, upvoted && { color: COLORS.cyan }]}>{post.votes + (upvoted ? 1 : 0)}</Text></TouchableOpacity><TouchableOpacity style={styles.action} activeOpacity={0.7}><Ionicons name="chatbubble-outline" size={17} color={colors.textMuted} /><Text style={[styles.actionText, { color: colors.textMuted }]}>{post.comments}</Text></TouchableOpacity><TouchableOpacity style={styles.action} activeOpacity={0.7}><Ionicons name="share-outline" size={17} color={colors.textMuted} /><Text style={[styles.actionText, { color: colors.textMuted }]}>{t('share')}</Text></TouchableOpacity></View>
+  </View>;
+}
+
+const styles = StyleSheet.create({ screen: { flex: 1, backgroundColor: COLORS.background }, topbar: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingVertical: 12 }, search: { flex: 1, height: 46, flexDirection: 'row', alignItems: 'center', gap: 9, paddingHorizontal: 12, borderRadius: 12, borderWidth: 1, borderColor: COLORS.cardBorder, backgroundColor: COLORS.surface }, searchInput: { flex: 1, minWidth: 0, color: COLORS.textPrimary, fontSize: 14 }, shortcut: { borderWidth: 1, borderColor: COLORS.cardBorder, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 3 }, shortcutText: { color: COLORS.textMuted, fontSize: 11 }, iconButton: { width: 44, height: 44, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.surface, borderRadius: 12, borderWidth: 1, borderColor: COLORS.cardBorder }, categories: { gap: 8, paddingHorizontal: 16, paddingBottom: 10 }, pill: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 9, borderWidth: 1, borderColor: COLORS.cardBorder, backgroundColor: COLORS.surface }, pillActive: { borderColor: COLORS.cyan, backgroundColor: '#00E5FF18' }, pillText: { color: COLORS.textSecondary, fontWeight: '600', fontSize: 13 }, pillTextActive: { color: COLORS.cyan }, feed: { paddingHorizontal: 16, paddingTop: 6, paddingBottom: 110, flexGrow: 1 }, columns: { gap: 12, alignItems: 'flex-start' }, card: { flex: 1, minWidth: 0, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.cardBorder, borderRadius: 14, padding: 16, marginBottom: 12 }, cardWide: { maxWidth: '50%' }, cardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 12 }, userRow: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1, minWidth: 0 }, userInfo: { flex: 1, minWidth: 0 }, avatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#202A35', borderWidth: 1, borderColor: COLORS.cardBorder, alignItems: 'center', justifyContent: 'center' }, avatarText: { color: COLORS.cyan, fontWeight: '700', fontSize: 14 }, username: { color: COLORS.textPrimary, fontWeight: '700', fontSize: 13 }, time: { color: COLORS.textMuted, fontSize: 11, marginTop: 3 }, badge: { borderWidth: 1, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 7 }, badgeText: { fontSize: 10, fontWeight: '700' }, title: { color: COLORS.textPrimary, fontSize: 15, lineHeight: 21, fontWeight: '600', marginBottom: 4 }, excerpt: { color: COLORS.textSecondary, fontSize: 12, lineHeight: 17, marginBottom: 11 }, terminal: { backgroundColor: '#0D1117', borderWidth: 1, borderColor: COLORS.cardBorder, borderRadius: 10, overflow: 'hidden', marginBottom: 12 }, terminalHead: { minHeight: 34, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, gap: 8, borderBottomWidth: 1, borderBottomColor: COLORS.cardBorder }, termDots: { flexDirection: 'row', gap: 4 }, termDot: { width: 7, height: 7, borderRadius: 4 }, terminalLabel: { flex: 1, color: COLORS.textMuted, fontSize: 11, fontFamily: 'SpaceMono' }, copy: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingVertical: 6 }, copyText: { color: COLORS.textSecondary, fontSize: 10 }, codeRow: { flexDirection: 'row', padding: 10, gap: 10 }, lineNumbers: { color: '#58616D', fontFamily: 'SpaceMono', fontSize: 10, lineHeight: 16, textAlign: 'right' }, code: { flex: 1, color: '#9CDCFE', fontFamily: 'SpaceMono', fontSize: 10, lineHeight: 16 }, actions: { flexDirection: 'row', alignItems: 'center', gap: 20 }, action: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingVertical: 4 }, actionText: { color: COLORS.textMuted, fontSize: 12, fontWeight: '600' }, fab: { position: 'absolute', right: 20, bottom: 88, width: 52, height: 52, borderRadius: 16, backgroundColor: COLORS.cyan, alignItems: 'center', justifyContent: 'center', elevation: 7, shadowColor: COLORS.cyan, shadowOpacity: 0.22, shadowRadius: 12, shadowOffset: { width: 0, height: 4 } }, empty: { alignItems: 'center', gap: 10, paddingTop: 56 }, muted: { color: COLORS.textMuted, fontSize: 14 } });

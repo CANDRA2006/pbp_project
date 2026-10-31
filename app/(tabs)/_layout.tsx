@@ -1,70 +1,21 @@
-import { SymbolView } from 'expo-symbols';
-import { Link, Tabs } from 'expo-router';
-import { Platform, Pressable } from 'react-native';
+import React, { useContext } from 'react';
+import { Tabs } from 'expo-router';
+import { Feather } from '@expo/vector-icons';
+import { StyleSheet, View } from 'react-native';
+import { BlurView } from 'expo-blur';
+import { COLORS } from '@/constants/Colors';
+import { LIGHT_COLORS, ThemeContext } from '../_layout';
+import { translate } from '@/constants/translations';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import Colors from '@/constants/Colors';
-import { useColorScheme } from '@/components/useColorScheme';
-import { useClientOnlyValue } from '@/components/useClientOnlyValue';
+const ICONS = { index: 'home', roadmap: 'map', chatbot: 'cpu', profile: 'user' } as const;
+const TITLE_KEYS = { index: 'home', roadmap: 'roadmap', chatbot: 'chatbot', profile: 'profile' } as const;
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
-
-  return (
-    <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme].tint,
-        // Disable the static render of the header on web
-        // to prevent a hydration error in React Navigation v6.
-        headerShown: useClientOnlyValue(false, true),
-      }}>
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Tab One',
-          tabBarIcon: ({ color }) => (
-            <SymbolView
-              name={{
-                ios: 'chevron.left.forwardslash.chevron.right',
-                android: 'code',
-                web: 'code',
-              }}
-              tintColor={color}
-              size={28}
-            />
-          ),
-          headerRight: () => (
-            <Link href="/modal" asChild>
-              <Pressable style={{ marginRight: 15 }}>
-                {({ pressed }) => (
-                  <SymbolView
-                    name={{ ios: 'info.circle', android: 'info', web: 'info' }}
-                    size={25}
-                    tintColor={Colors[colorScheme].text}
-                    style={{ opacity: pressed ? 0.5 : 1 }}
-                  />
-                )}
-              </Pressable>
-            </Link>
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="two"
-        options={{
-          title: 'Tab Two',
-          tabBarIcon: ({ color }) => (
-            <SymbolView
-              name={{
-                ios: 'chevron.left.forwardslash.chevron.right',
-                android: 'code',
-                web: 'code',
-              }}
-              tintColor={color}
-              size={28}
-            />
-          ),
-        }}
-      />
-    </Tabs>
-  );
+  const insets = useSafeAreaInsets();
+  const { isDark, language } = useContext(ThemeContext);
+  const colors = isDark ? COLORS : LIGHT_COLORS;
+  return <Tabs screenOptions={{ headerShown: false, tabBarActiveTintColor: COLORS.cyan, tabBarInactiveTintColor: colors.tabIconDefault, tabBarStyle: { position: 'absolute', bottom: 0, height: 58 + insets.bottom, paddingTop: 7, paddingBottom: Math.max(insets.bottom, 8), backgroundColor: colors.tabBarBackground, borderTopColor: colors.tabBarBorder, borderTopWidth: 1, elevation: 0 }, tabBarBackground: () => isDark ? <BlurView intensity={35} tint="dark" style={StyleSheet.absoluteFill} /> : <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.tabBarBackground }]} />, tabBarLabelStyle: { fontSize: 11, fontWeight: '600' } }}>
+    {(['index', 'roadmap', 'chatbot', 'profile'] as const).map((name) => <Tabs.Screen key={name} name={name} options={{ title: translate(language, TITLE_KEYS[name]), tabBarIcon: ({ focused, color }) => <Feather name={ICONS[name]} size={19} color={focused ? COLORS.cyan : String(color ?? colors.tabIconDefault)} /> }} />)}
+  </Tabs>;
 }
