@@ -42,6 +42,8 @@ export const COLORS = {
   terminalBorder: '#21262D',
 } as const;
 
+export const LIGHT_COLORS = { ...COLORS, background: '#F4F7FA', surface: '#FFFFFF', surfaceLight: '#E9EEF3', card: '#FFFFFF', cardBorder: '#D8E0E8', textPrimary: '#15202B', textSecondary: '#526171', textMuted: '#718096', tabBarBackground: 'rgba(255, 255, 255, 0.96)', tabBarBorder: '#D8E0E8', tabIconDefault: '#718096', inputBackground: '#F4F7FA', inputBorder: '#D8E0E8', placeholder: '#718096', overlay: 'rgba(15, 23, 42, 0.35)', terminalBg: '#17212B', terminalBorder: '#D8E0E8' } as const;
+
 // Legacy compat for expo-router ThemeProvider
 const tintColorDark = COLORS.cyan;
 

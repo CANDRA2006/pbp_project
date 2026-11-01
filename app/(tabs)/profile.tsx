@@ -1,15 +1,18 @@
-import React, { useContext } from 'react';
+import React from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { router, type Href } from 'expo-router';
-import { COLORS } from '@/constants/Colors';
+import { COLORS, LIGHT_COLORS } from '@/constants/Colors';
 import { DUMMY_PROFILE } from '@/constants/dummyData';
-import { LIGHT_COLORS, ThemeContext } from '../_layout';
+import { useTheme } from '@/context/ThemeContext';
+import i18n from '@/constants/i18n';
 import { translate } from '@/constants/translations';
 
 export default function ProfileScreen() {
-  const { isDark, language } = useContext(ThemeContext);
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
+  const language = ({ id: 'ID', en: 'EN', zh: 'ZH' } as const)[i18n.language as 'id' | 'en' | 'zh'];
   const colors = isDark ? COLORS : LIGHT_COLORS;
   const t = (key: string) => translate(language, key);
   const profile = DUMMY_PROFILE;
