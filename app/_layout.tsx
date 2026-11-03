@@ -23,7 +23,7 @@ export const ThemeContext = createContext({ isDark: true, language: 'ID' as 'ID'
 void SplashScreen.preventAutoHideAsync();
 
 function AppNavigator() {
-  const { session, isLoading: authLoading } = useAuth();
+  const { session, isGuest, isLoading: authLoading } = useAuth();
   const { theme, isReady: themeReady } = useTheme();
   const segments = useSegments();
   const router = useRouter();
@@ -39,9 +39,9 @@ function AppNavigator() {
     if (!isReady) return;
     const inAuth = segments[0] === '(auth)';
     const inTabs = segments[0] === '(tabs)';
-    if (!session && inTabs) router.replace('/(auth)/login');
+    if (!session && !isGuest && inTabs) router.replace('/(auth)/login');
     else if (session && inAuth) router.replace('/(tabs)');
-  }, [isReady, session, segments, router]);
+  }, [isReady, session, isGuest, segments, router]);
 
   const colors = theme === 'dark' ? COLORS : LIGHT_COLORS;
   const navigationTheme = {
