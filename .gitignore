@@ -30,9 +30,10 @@ yarn-error.*
 .DS_Store
 *.pem
 
-# Environment variables: keep local credentials out of Git.
+# Environment variables
 .env*
 !.env.example
+.envlocal
 
 # typescript
 *.tsbuildinfo
